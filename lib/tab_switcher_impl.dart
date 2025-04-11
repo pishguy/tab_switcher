@@ -11,6 +11,7 @@ typedef TabWidgetBuilder = Widget Function(BuildContext context, TabSwitcherTab?
 /// Root widget for building apps with full screen tabs
 class TabSwitcherWidget extends StatefulWidget {
   TabSwitcherWidget({
+    Key? key,
     required this.controller,
     required this.appBarBuilder,
     this.bodyBuilder,
@@ -18,26 +19,27 @@ class TabSwitcherWidget extends StatefulWidget {
     this.switcherFooterBuilder,
     this.appBarHeight = 56,
     this.backgroundColor,
-  }) {
-    initPageControllers();
+  }) : super(key: key) {
+    _initializePageControllers();
   }
 
-  void initPageControllers() {
-    _appBarPageController = PageController(initialPage: controller.currentTab?.index ?? 0);
-    _bodyPageController = PageController(initialPage: controller.currentTab?.index ?? 0);
+  void _initializePageControllers() {
+    // فقط اگه هنوز مقداردهی نشده باشن، مقداردهی می‌کنیم
+    _appBarPageController ??= PageController(initialPage: controller.currentTab?.index ?? 0);
+    _bodyPageController ??= PageController(initialPage: controller.currentTab?.index ?? 0);
 
-    _appBarPageController.addListener(() {
+    _appBarPageController!.addListener(() {
       // syncing body PageView with header PageView
-      if (_bodyPageController.hasClients) {
-        _bodyPageController.position.correctPixels(_appBarPageController.offset);
-        _bodyPageController.position.notifyListeners();
+      if (_bodyPageController!.hasClients) {
+        _bodyPageController!.position.correctPixels(_appBarPageController!.offset);
+        _bodyPageController!.position.notifyListeners();
       }
 
       // syncing controller's current page after header swipe gesture
-      if (_appBarPageController.hasClients &&
-          _appBarPageController.page == _appBarPageController.page!.floorToDouble() &&
+      if (_appBarPageController!.hasClients &&
+          _appBarPageController!.page == _appBarPageController!.page!.floorToDouble() &&
           !_isNavigatingToPage) {
-        var index = _appBarPageController.page!.floor();
+        final index = _appBarPageController!.page!.floor();
         if (controller.currentTab != null && controller.currentTab!.index != index) {
           controller.switchToTab(index);
         }
@@ -45,118 +47,117 @@ class TabSwitcherWidget extends StatefulWidget {
     });
   }
 
-  late PageController _appBarPageController;
-  late PageController _bodyPageController;
+  PageController? _appBarPageController;
+  PageController? _bodyPageController;
   bool _isNavigatingToPage = false;
 
   final TabSwitcherController controller;
-
   final TabWidgetBuilder? appBarBuilder;
   final TabWidgetBuilder? bodyBuilder;
   final WidgetBuilder? emptyScreenBuilder;
   final WidgetBuilder? switcherFooterBuilder;
   final Color? backgroundColor;
-
-  final int appBarHeight;
+  final double appBarHeight;
 
   @override
   State<TabSwitcherWidget> createState() => _TabSwitcherWidgetState();
 }
 
 class _TabSwitcherWidgetState extends State<TabSwitcherWidget> {
+  late StreamSubscription<TabSwitcherTab> _sub1;
+  late StreamSubscription<TabSwitcherTab> _sub2;
+  late StreamSubscription<bool> _sub3;
+  late StreamSubscription<TabSwitcherTab?> _sub4;
+
   @override
   void initState() {
     super.initState();
     _sub1 = widget.controller.onTabClosed.listen((e) => setState(() {}));
     _sub2 = widget.controller.onNewTab.listen((e) => setState(() {}));
-    _sub3 = widget.controller.onSwitchModeChanged.listen((e) => setState(() => widget.initPageControllers()));
+    _sub3 = widget.controller.onSwitchModeChanged.listen((e) => setState(() {})); // اینجا دیگه initPageControllers رو صدا نمی‌زنیم
     _sub4 = widget.controller.onCurrentTabChanged.listen((e) => setState(() {
-          if (widget.controller.switcherActive) {
-            widget.initPageControllers();
-          } else if (widget.controller.currentTab != null && widget._appBarPageController.positions.isNotEmpty) {
-            widget._isNavigatingToPage = true;
-            widget._appBarPageController.jumpToPage(widget.controller.currentTab!.index);
-            widget._isNavigatingToPage = false;
-          }
-        }));
+      if (!widget.controller.switcherActive &&
+          widget.controller.currentTab != null &&
+          widget._appBarPageController!.hasClients) {
+        widget._isNavigatingToPage = true;
+        widget._appBarPageController!.jumpToPage(widget.controller.currentTab!.index);
+        widget._isNavigatingToPage = false;
+      }
+    }));
   }
 
   @override
   void dispose() {
-    super.dispose();
     _sub1.cancel();
     _sub2.cancel();
     _sub3.cancel();
     _sub4.cancel();
+    widget._appBarPageController?.dispose();
+    widget._bodyPageController?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    var noTabs = widget.controller.tabCount == 0;
-    var displaySwitcher = widget.controller.switcherActive;
-    var theme = Theme.of(context);
+    final noTabs = widget.controller.tabCount == 0;
+    final displaySwitcher = widget.controller.switcherActive;
+    final theme = Theme.of(context);
     final backgroundColor = widget.backgroundColor ?? theme.scaffoldBackgroundColor;
 
-    return Container(
+    return ColoredBox(
       color: backgroundColor,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: TabSwitcherAppBar(
           widget.appBarBuilder,
           widget.controller,
-          widget._appBarPageController,
+          widget._appBarPageController!,
           MediaQuery.of(context),
-          widget.appBarHeight,
+          widget.appBarHeight.toInt(),
           backgroundColor,
         ),
         body: displaySwitcher
-            ? Container(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: noTabs
-                          ? widget.emptyScreenBuilder?.call(context) ??
-                              Center(
-                                child: Text(
-                                  'No open tabs',
-                                  style: TextStyle(color: theme.colorScheme.onSurface),
-                                ),
-                              )
-                          : TabSwitcherTabGrid(widget.controller),
+            ? Column(
+          children: [
+            Expanded(
+              child: noTabs
+                  ? widget.emptyScreenBuilder?.call(context) ??
+                  Center(
+                    child: Text(
+                      'No open tabs',
+                      style: TextStyle(color: theme.colorScheme.onSurface),
                     ),
-                    ...widget.switcherFooterBuilder != null ? [widget.switcherFooterBuilder!.call(context)] : [],
-                  ],
-                ),
-              )
+                  )
+                  : TabSwitcherTabGrid(widget.controller),
+            ),
+            if (widget.switcherFooterBuilder != null)
+              widget.switcherFooterBuilder!(context),
+          ],
+        )
             : PageView.builder(
-                controller: widget._bodyPageController,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: widget.controller.tabCount,
-                itemBuilder: (c, i) {
-                  var tab = widget.controller.tabs[i];
-                  return PreviewCapturerWidget(
-                    tag: tab.getTitle(),
-                    child: widget.bodyBuilder?.call(c, tab) ??
-                        Column(
-                          children: [
-                            Expanded(
-                              child: tab.getContent(),
-                            ),
-                          ],
-                        ),
-                    callback: (bytes) {
-                      tab.previewImage = bytes;
-                      setState(() {});
-                    },
-                  );
-                },
-              ),
+          controller: widget._bodyPageController,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: widget.controller.tabCount,
+          itemBuilder: (c, i) {
+            final tab = widget.controller.tabs[i];
+            return PreviewCapturerWidget(
+              tag: tab.getTitle(),
+              child: widget.bodyBuilder?.call(c, tab) ??
+                  Column(
+                    children: [
+                      Expanded(
+                        child: tab.getContent(),
+                      ),
+                    ],
+                  ),
+              callback: (image) {
+                tab.previewImage = image;
+                setState(() {});
+              },
+            );
+          },
+        ),
       ),
     );
   }
-
-  late StreamSubscription<TabSwitcherTab> _sub1;
-  late StreamSubscription<TabSwitcherTab> _sub2;
-  late StreamSubscription<bool> _sub3;
-  late StreamSubscription<TabSwitcherTab?> _sub4;
 }
