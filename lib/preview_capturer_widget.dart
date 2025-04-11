@@ -7,9 +7,13 @@ typedef ImageCaptureCallback = void Function(ui.Image image);
 
 /// Generates image from child widget right before detaching from the widget tree
 /// and calls callback with the captured image
-/// TODO Customizable image quality (pixelRatio)
 class PreviewCapturerWidget extends StatefulWidget {
-  PreviewCapturerWidget({required this.child, required this.callback, required this.tag});
+  const PreviewCapturerWidget({
+    Key? key,
+    required this.child,
+    required this.callback,
+    required this.tag,
+  }) : super(key: key);
 
   final Widget child;
   final ImageCaptureCallback callback;
@@ -23,31 +27,33 @@ class _PreviewCapturerWidgetState extends State<PreviewCapturerWidget> {
   final GlobalKey _key = GlobalKey();
 
   @override
-  Widget build(BuildContext context) => RepaintBoundary(child: widget.child, key: _key);
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      key: _key,
+      child: widget.child,
+    );
+  }
 
   @override
   void deactivate() {
-    super.deactivate();
     _captureImage();
+    super.deactivate();
   }
 
-  void _captureImage() async {
-    //Logger.measure("TabPreview", "Capture", () async {
-    var ro = _key.currentContext?.findRenderObject();
-    if (ro is RenderRepaintBoundary) {
-      RenderRepaintBoundary boundary = ro;
-      var retries = 3;
-      do {
-        try {
-          ui.Image image = await boundary.toImage(pixelRatio: 1.5);
-          widget.callback(image);
-          return;
-        } catch (e) {
-          if (true) {}
-        }
-        await Future.delayed(Duration(milliseconds: 20));
-      } while (--retries != 0);
+  Future<void> _captureImage() async {
+    final ro = _key.currentContext?.findRenderObject();
+    if (ro is! RenderRepaintBoundary) return;
+
+    var retries = 3;
+    while (retries > 0) {
+      try {
+        final image = await ro.toImage(pixelRatio: 1.5);
+        widget.callback(image);
+        return;
+      } catch (_) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        retries--;
+      }
     }
-    //});
   }
 }
