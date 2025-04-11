@@ -4,7 +4,6 @@ typedef AnimatedGridBuilder<T> = Widget Function(BuildContext, T item, AnimatedG
 
 /// Based on https://gist.github.com/lukepighetti/df460db180b9f6cb3410e3cc91ed74e6
 class AnimatedGrid<T> extends StatelessWidget {
-  /// An animated grid the animates when the items change sort.
   const AnimatedGrid({
     Key? key,
     required this.itemHeight,
@@ -17,34 +16,19 @@ class AnimatedGrid<T> extends StatelessWidget {
     this.curve = Curves.elasticOut,
   }) : super(key: key);
 
-  /// The grid items. Should all be the same height.
   final List<T> items;
-
-  /// Construct keys given the item provided. Each key must be unique.
   final Key Function(T item) keyBuilder;
-
-  /// Build a widget given a context, the current item, and the column and row index.
   final AnimatedGridBuilder<T> builder;
-
-  /// The number of columns wide to display.
   final int columns;
-
-  /// The height of each child.
   final double itemHeight;
-
-  /// The height of each child.
   final double padding;
-
-  /// The duration of the sort animation.
   final Duration duration;
-
-  /// The curve of the sort animation.
   final Curve curve;
 
   static int _rows(int columns, int count) => (count / columns).ceil();
 
   @visibleForTesting
-  static List<int> gridIndicies(int index, int columns, int count) {
+  static List<int> gridIndices(int index, int columns, int count) {
     final rows = _rows(columns, count);
     final maxItemsForGridSize = columns * rows;
     final yIndex = (index / maxItemsForGridSize * rows).floor();
@@ -57,31 +41,31 @@ class AnimatedGrid<T> extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         assert(constraints.hasBoundedWidth);
-        assert(constraints.hasBoundedHeight == false);
         final width = constraints.maxWidth;
 
         final count = items.length;
         final itemWidth = (width / columns) - padding / columns;
         final rows = _rows(columns, count);
-        final gridHeight = rows * itemHeight + (padding * count);
+        final gridHeight = rows * itemHeight + (padding * rows);
 
         return SizedBox(
           height: gridHeight,
           child: Stack(
             alignment: Alignment.topLeft,
             children: [
-              for (var i = 0; i <= items.lastIndex; i++)
+              for (var i = 0; i < items.length; i++)
                 Builder(
                   key: keyBuilder(items[i]),
                   builder: (context) {
                     final item = items[i];
-                    final indicies = gridIndicies(i, columns, count);
-                    assert(indicies.length == 2);
+                    final indices = gridIndices(i, columns, count);
 
-                    final xIndex = indicies.first;
-                    final yIndex = indicies.last;
-                    final offset =
-                        Offset(xIndex * itemWidth + xIndex * padding, yIndex * itemHeight + yIndex * padding);
+                    final xIndex = indices.first;
+                    final yIndex = indices.last;
+                    final offset = Offset(
+                      xIndex * itemWidth + xIndex * padding,
+                      yIndex * itemHeight + yIndex * padding,
+                    );
 
                     return TweenAnimationBuilder<Offset>(
                       tween: Tween<Offset>(end: offset),
@@ -120,8 +104,7 @@ class AnimatedGrid<T> extends StatelessWidget {
 }
 
 class AnimatedGridDetails {
-  /// A collection of details currently being used by [AnimatedGrid]
-  AnimatedGridDetails({
+  const AnimatedGridDetails({
     required this.index,
     required this.columnIndex,
     required this.rowIndex,
@@ -129,25 +112,13 @@ class AnimatedGridDetails {
     required this.rows,
   });
 
-  /// The current index
   final int index;
-
-  /// The current column index
   final int columnIndex;
-
-  /// The current row index
   final int rowIndex;
-
-  /// The number of columns
   final int columns;
-
-  /// The number of rows
   final int rows;
 }
 
 extension IterableX<T> on Iterable<T> {
-  /// The last index on this iterable.
-  ///
-  /// Ie `[A,B,C].lastIndex == 2`
-  int get lastIndex => length == 0 ? throw RangeError('Cannot find the last index of an empty iterable') : length - 1;
+  int get lastIndex => isEmpty ? throw RangeError('Cannot find the last index of an empty iterable') : length - 1;
 }
