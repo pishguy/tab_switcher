@@ -1,9 +1,8 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/physics.dart';
+import 'package:flutter/material.dart';
 
 /// Fast and steady scrolling physics based on [ScrollPhysics].
 class ResponsiveClampedScrollPhysics extends ScrollPhysics {
-  const ResponsiveClampedScrollPhysics({ScrollPhysics? parent}) : super(parent: parent);
+  const ResponsiveClampedScrollPhysics({super.parent});
 
   @override
   ResponsiveClampedScrollPhysics applyTo(ScrollPhysics? ancestor) {
@@ -12,15 +11,15 @@ class ResponsiveClampedScrollPhysics extends ScrollPhysics {
 
   @override
   SpringDescription get spring => const SpringDescription(
-        mass: 80,
-        stiffness: 100,
-        damping: 1,
-      );
+    mass: 80,
+    stiffness: 100,
+    damping: 1,
+  );
 }
 
 /// Fast and steady scrolling physics based on [BouncingScrollPhysics].
 class ResponsiveBouncingScrollPhysics extends BouncingScrollPhysics {
-  const ResponsiveBouncingScrollPhysics({ScrollPhysics? parent}) : super(parent: parent);
+  const ResponsiveBouncingScrollPhysics({super.parent});
 
   @override
   ResponsiveBouncingScrollPhysics applyTo(ScrollPhysics? ancestor) {
@@ -29,8 +28,8 @@ class ResponsiveBouncingScrollPhysics extends BouncingScrollPhysics {
 
   @override
   SpringDescription get spring => const SpringDescription(
-        mass: 80,
-        stiffness: 100,
-        damping: 1,
-      );
+    mass: 80,
+    stiffness: 100,
+    damping: 1,
+  );
 }
