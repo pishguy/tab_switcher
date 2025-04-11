@@ -3,7 +3,6 @@ import 'dart:collection';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 /// Main controller of the tab switcher.
 /// Opens new tabs, closes tabs, switches tabs programmatically.
@@ -18,21 +17,20 @@ class TabSwitcherController {
   Stream<TabSwitcherTab?> get onCurrentTabChanged => _currentTabChangedSubject.stream;
   Stream<bool> get onSwitchModeChanged => _switchModeSubject.stream;
 
-  T? getTab<T>() {
+  T? getTab<T extends TabSwitcherTab>() {
     for (var tab in _tabs) {
       if (tab is T) {
-        return tab as T;
+        return tab;
       }
     }
-
     return null;
   }
 
   void toggleTabSwitcher() => switcherActive = !switcherActive;
 
-  bool get switcherActive => _switcherActive ?? (_switcherActive = _tabs.isEmpty);
+  bool get switcherActive => _switcherActive ??= _tabs.isEmpty;
   set switcherActive(bool value) {
-    if (value == false && tabCount == 0) return; // switcher cannot be exited when there are no tabs
+    if (value == false && tabCount == 0) return;
     if (_switcherActive != value) {
       _switcherActive = value;
       _switchModeSubject.add(value);
@@ -40,10 +38,6 @@ class TabSwitcherController {
   }
 
   void pushTab(TabSwitcherTab tab, {int index = 0, bool foreground = true}) {
-    //if (_tabs.isEmpty) {
-    //  foreground = true;
-    //}
-
     _tabs.add(tab);
     tab._index = _tabs.length - 1;
 
@@ -54,10 +48,10 @@ class TabSwitcherController {
         _switcherActive = false;
         _switchModeSubject.add(_switcherActive!);
       }
-      _currentTabChangedSubject.sink.add(_currentTab);
+      _currentTabChangedSubject.add(_currentTab);
     }
 
-    _newTabSubject.sink.add(tab);
+    _newTabSubject.add(tab);
   }
 
   void closeTab(TabSwitcherTab tab) {
@@ -78,17 +72,17 @@ class TabSwitcherController {
           _switchModeSubject.add(_switcherActive!);
         }
       }
-      _currentTabChangedSubject.sink.add(_currentTab);
+      _currentTabChangedSubject.add(_currentTab);
     }
 
-    _tabClosedSubject.sink.add(tab);
+    _tabClosedSubject.add(tab);
   }
 
   void switchToTab(int index) {
     if (index >= 0 && index < _tabs.length) {
       _currentTab?.onSave(_currentTab!._state);
       _currentTab = _tabs[index];
-      _currentTabChangedSubject.sink.add(_currentTab);
+      _currentTabChangedSubject.add(_currentTab);
     }
 
     if (switcherActive) {
@@ -98,13 +92,19 @@ class TabSwitcherController {
 
   TabSwitcherTab? _currentTab;
   final List<TabSwitcherTab> _tabs = [];
-
   bool? _switcherActive;
 
-  final StreamController<TabSwitcherTab> _newTabSubject = StreamController<TabSwitcherTab>.broadcast();
-  final StreamController<TabSwitcherTab> _tabClosedSubject = StreamController<TabSwitcherTab>.broadcast();
-  final StreamController<TabSwitcherTab?> _currentTabChangedSubject = StreamController<TabSwitcherTab?>.broadcast();
-  final StreamController<bool> _switchModeSubject = StreamController<bool>.broadcast();
+  final _newTabSubject = StreamController<TabSwitcherTab>.broadcast();
+  final _tabClosedSubject = StreamController<TabSwitcherTab>.broadcast();
+  final _currentTabChangedSubject = StreamController<TabSwitcherTab?>.broadcast();
+  final _switchModeSubject = StreamController<bool>.broadcast();
+
+  void dispose() {
+    _newTabSubject.close();
+    _tabClosedSubject.close();
+    _currentTabChangedSubject.close();
+    _switchModeSubject.close();
+  }
 }
 
 abstract class TabSwitcherTab {
@@ -119,7 +119,7 @@ abstract class TabSwitcherTab {
 
   Widget getContent() => _content ??= build(_state);
 
-  ui.Image? previewImage; // TODO Move out of here
+  ui.Image? previewImage;
 
   Widget? _content;
   late int _index;
