@@ -4,36 +4,40 @@ import 'package:tab_switcher/tab_switcher_controller.dart';
 /// Reusable button which shows supplied [TabSwitcherController]'s tab count
 /// and triggers tab switching if tapped. For use in AppBar.
 class TabCountIcon extends StatelessWidget {
-  const TabCountIcon({required this.controller, Key? key}) : super(key: key);
+  const TabCountIcon({
+    super.key,
+    required this.controller,
+  });
 
   final TabSwitcherController controller;
 
   @override
   Widget build(BuildContext context) {
+    final iconColor = IconTheme.of(context).color ?? Colors.white;
     return InkResponse(
       highlightShape: BoxShape.circle,
       onTap: controller.toggleTabSwitcher,
-      child: Container(
+      child: SizedBox(
         width: 48,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              height: 18,
+            DecoratedBox(
               decoration: BoxDecoration(
-                border: Border.all(color: IconTheme.of(context).color ?? Colors.white, width: 2),
-                borderRadius: BorderRadius.all(
-                  Radius.circular(4),
-                ),
+                border: Border.all(color: iconColor, width: 2),
+                borderRadius: const BorderRadius.all(Radius.circular(4)),
               ),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 3.5),
+                padding: const EdgeInsets.symmetric(horizontal: 3.5),
                 child: Center(
                   child: Opacity(
                     opacity: controller.tabCount == 0 ? 0 : 1,
                     child: Text(
                       controller.tabCount.toString(),
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
