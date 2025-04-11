@@ -4,34 +4,35 @@ import 'package:flutter/material.dart';
 
 /// Renders [ui.Image] data faster than encoding and displaying in [Image.memory].
 class UiImageWidget extends StatelessWidget {
+  const UiImageWidget({
+    super.key,
+    required this.image,
+    this.fit = BoxFit.fill,
+  });
+
   final ui.Image image;
   final BoxFit fit;
 
-  const UiImageWidget({
-    Key? key,
-    required this.image,
-    this.fit = BoxFit.fill,
-  }) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _UiImageWidgetPainter(image, fit));
+    return CustomPaint(
+      painter: _UiImageWidgetPainter(image, fit),
+    );
   }
 }
 
 class _UiImageWidgetPainter extends CustomPainter {
+  const _UiImageWidgetPainter(this.image, this.fit);
+
   final ui.Image image;
   final BoxFit fit;
 
-  _UiImageWidgetPainter(this.image, this.fit);
-
   @override
   void paint(Canvas canvas, Size size) {
-    final Size imageSize = Size(image.width.toDouble(), image.height.toDouble());
-    final FittedSizes sizes = applyBoxFit(fit, imageSize, size);
-    final Rect inputSubrect = Alignment.center.inscribe(sizes.source, Offset.zero & imageSize);
-    final Rect outputSubrect =
-        Alignment.center.inscribe(sizes.destination, Rect.fromLTWH(0, 0, size.width, size.height));
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
+    final sizes = applyBoxFit(fit, imageSize, size);
+    final inputSubrect = Alignment.center.inscribe(sizes.source, Offset.zero & imageSize);
+    final outputSubrect = Alignment.center.inscribe(sizes.destination, Offset.zero & size);
 
     canvas.drawImageRect(
       image,
@@ -42,7 +43,8 @@ class _UiImageWidgetPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_UiImageWidgetPainter oldDelegate) {
-    return image != oldDelegate.image;
-  }
+  bool shouldRepaint(_UiImageWidgetPainter oldDelegate) => image != oldDelegate.image;
+
+  @override
+  bool shouldRebuildSemantics(_UiImageWidgetPainter oldDelegate) => false;
 }
